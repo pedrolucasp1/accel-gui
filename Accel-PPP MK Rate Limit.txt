@@ -1,0 +1,57 @@
+--- git a/accel-ppp/accel-pppd/shaper/shaper.c b/accel-ppp/accel-pppd/shaper/shaper.c
+--- a/accel-ppp/accel-pppd/shaper/shaper.c
++++ b/accel-ppp/accel-pppd/shaper/shaper.c
+@@ -196,7 +196,9 @@ static struct shaper_pd_t *find_pd(struct ap_session *ses, int create)
+ static void parse_string_simple(const char *str, int dir, int *speed, int *burst, int *tr_id)
+ {
+ 	char *endptr;
++	char *endstr;
+ 	long int val;
++	long int bandw;
+ 
+ 	val = strtol(str, &endptr, 10);
+ 	if (*endptr == 0) {
+@@ -211,15 +213,38 @@ static void parse_string_simple(const char *str, int dir, int *speed, int *burst
+ 		*speed = conf_multiplier * val;
+ 		return;
+ 	} else {
+-		if (*endptr == '/' || *endptr == '\\' || *endptr == ':') {
+-			if (dir == ATTR_DOWN)
+-				*speed = conf_multiplier * val;
+-			else
+-				*speed = conf_multiplier * strtol(endptr + 1, &endptr, 10);
++		if (*endptr == 'k' || *endptr == 'K' || *endptr == 'm' || *endptr == 'M') {
++			endstr = endptr;
++			endptr++;
++			if (*endptr == '/' || *endptr == '\\' || *endptr == ':') {
++				if (dir == ATTR_UP) {
++					bandw = conf_multiplier * val;
++					if (*endstr == 'm' || *endstr == 'M') {
++						*speed = bandw * 1024;
++					} else {
++						*speed = bandw;
++					}
++				} else {
++					bandw = conf_multiplier * strtol(endptr + 1, &endptr, 10);
++					if (*endptr == 'm' || *endptr == 'M') {
++						*speed = bandw * 1024;
++					} else {
++						*speed = bandw;
++					}
++				}
++			}
++		} else {
++			if (*endptr == '/' || *endptr == '\\' || *endptr == ':') {
++				if (dir == ATTR_DOWN)
++					*speed = conf_multiplier * val;
++				else
++					*speed = conf_multiplier * strtol(endptr + 1, &endptr, 10);
++			}
+ 		}
+ 	}
+ }
+ 
++
+ static void parse_string(const char *str, int dir, int *speed, int *burst, int *tr_id)
+ {
+ 	long int val;
